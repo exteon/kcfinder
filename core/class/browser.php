@@ -35,7 +35,7 @@ class browser extends uploader {
             $_GET['dir'] = $dir;
         }
 
-        $thumbsDir = $this->config['uploadDir'] . "/" . $this->config['thumbsDir'];
+        $thumbsDir = $this->config['thumbsDir'];
         if (!$this->config['disabled'] &&
             (
                 (
@@ -750,7 +750,7 @@ class browser extends uploader {
     }
 
     protected function getFiles($dir) {
-        $thumbDir = "{$this->config['uploadDir']}/{$this->config['thumbsDir']}/$dir";
+        $thumbDir = "{$this->thumbsDir}/$dir";
         $dir = "{$this->config['uploadDir']}/$dir";
         $return = array();
         $files = dir::content($dir, array('types' => "file"));

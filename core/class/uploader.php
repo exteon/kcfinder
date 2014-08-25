@@ -677,7 +677,7 @@ class uploader {
             return true;
 
         $thumb = substr($file, strlen($this->config['uploadDir']));
-        $thumb = $this->config['uploadDir'] . "/" . $this->config['thumbsDir'] . "/" . $thumb;
+        $thumb = $this->thumbsDir . "/" . $thumb;
         $thumb = path::normalize($thumb);
         $thumbDir = dirname($thumb);
         if (!is_dir($thumbDir) && !@mkdir($thumbDir, $this->config['dirPerms'], true))
