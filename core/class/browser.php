@@ -24,13 +24,13 @@ class browser extends uploader {
 
         // SECURITY CHECK INPUT DIRECTORY
         if (isset($_POST['dir'])) {
-            $dir = $this->checkInputDir($_POST['dir'], true, false);
+            $dir = $this->checkInputDir($_POST['dir'], false);
             if ($dir === false) unset($_POST['dir']);
             $_POST['dir'] = $dir;
         }
 
         if (isset($_GET['dir'])) {
-            $dir = $this->checkInputDir($_GET['dir'], true, false);
+            $dir = $this->checkInputDir($_GET['dir'], false);
             if ($dir === false) unset($_GET['dir']);
             $_GET['dir'] = $dir;
         }
@@ -54,7 +54,7 @@ class browser extends uploader {
             $this->errorMsg("Cannot access or create thumbnails folder.");
 
         $this->thumbsDir = $thumbsDir;
-        $this->thumbsTypeDir = "$thumbsDir/{$this->type}";
+        $this->thumbsTypeDir = $thumbsDir.($this->doTypeSubdir?"/{$this->type}":'');
 
         // Remove temporary zip downloads if exists
         if (!$this->config['disabled']) {
@@ -97,13 +97,19 @@ class browser extends uploader {
             }
         }
 
-        if (!isset($this->session['dir']))
-            $this->session['dir'] = $this->type;
-        else {
-            $type = $this->getTypeFromPath($this->session['dir']);
-            $dir = $this->config['uploadDir'] . "/" . $this->session['dir'];
-            if (($type != $this->type) || !is_dir($dir) || !is_readable($dir))
-                $this->session['dir'] = $this->type;
+        if (!isset($this->session['dir'])){
+            $this->session['dir'] = $this->doTypeSubdir?$this->type:'';
+        } else {
+            if($this->doTypeSubdir){
+                $type = $this->getTypeFromPath($this->session['dir']);
+                $dir = $this->config['uploadDir'] . "/" . $this->session['dir'];
+                if (($type != $this->type) || !is_dir($dir) || !is_readable($dir))
+                    $this->session['dir'] = $this->type;
+            } else {
+                $dir = $this->config['uploadDir'] . "/" . $this->session['dir'];
+                if (!is_dir($dir) || !is_readable($dir))
+                	$this->session['dir'] = '';
+            }
         }
         $this->session['dir'] = path::normalize($this->session['dir']);
 
@@ -127,15 +133,19 @@ class browser extends uploader {
 
     protected function act_browser() {
         if (isset($_GET['dir'])) {
-            $dir = "{$this->typeDir}/{$_GET['dir']}";
-            if ($this->checkFilePath($dir) && is_dir($dir) && is_readable($dir))
-                $this->session['dir'] = path::normalize("{$this->type}/{$_GET['dir']}");
+            $dir = $this->config['uploadDir']."{$this->typeDir}/{$_GET['dir']}";
+            if ($this->checkFilePath($dir) && is_dir($dir) && is_readable($dir)){
+                $this->session['dir'] = path::normalize(($this->doTypeSubdir?"$this->type/":'').$_GET['dir']);
+            }
         }
         return $this->output();
     }
 
     protected function act_init() {
         $tree = $this->getDirInfo($this->typeDir);
+         if(!$this->doTypeSubdir){
+             $tree['skip']=true;
+         }
         $tree['dirs'] = $this->getTree($this->session['dir']);
         if (!is_array($tree['dirs']) || !count($tree['dirs']))
             unset($tree['dirs']);
@@ -196,7 +206,7 @@ class browser extends uploader {
 
     protected function act_chDir() {
         $this->postDir(); // Just for existing check
-        $this->session['dir'] = "{$this->type}/{$_POST['dir']}";
+        $this->session['dir'] = ($this->doTypeSubdir?"$this->type/":'').$_POST['dir'];
         $dirWritable = dir::isWritable("{$this->config['uploadDir']}/{$this->session['dir']}");
         return json_encode(array(
             'files' => $this->getFiles($this->session['dir']),
@@ -397,9 +407,11 @@ class browser extends uploader {
         foreach($_POST['files'] as $file) {
             $file = path::normalize($file);
             if (substr($file, 0, 1) == ".") continue;
-            $type = explode("/", $file);
-            $type = $type[0];
-            if ($type != $this->type) continue;
+            if($this->doTypeSubdir){
+                $type = explode("/", $file);
+                $type = $type[0];
+                if ($type != $this->type) continue;
+            }
             $path = "{$this->config['uploadDir']}/$file";
             if (!$this->checkFilePath($path)) continue;
             $base = basename($file);
@@ -409,7 +421,7 @@ class browser extends uploader {
                 $error[] = $this->label("The file '{file}' does not exist.", $replace);
             elseif (substr($base, 0, 1) == ".")
                 $error[] = $this->htmlData($base) . ": " . $this->label("File name shouldn't begins with '.'");
-            elseif (!$this->validateExtension($ext, $type))
+            elseif (!$this->validateExtension($ext, $this->type))
                 $error[] = $this->htmlData($base) . ": " . $this->label("Denied file extension.");
             elseif (file_exists("$dir/$base"))
                 $error[] = $this->htmlData($base) . ": " . $this->label("A file or folder with that name already exists.");
@@ -449,9 +461,11 @@ class browser extends uploader {
         foreach($_POST['files'] as $file) {
             $file = path::normalize($file);
             if (substr($file, 0, 1) == ".") continue;
-            $type = explode("/", $file);
-            $type = $type[0];
-            if ($type != $this->type) continue;
+            if($this->doTypeSubdir){
+                $type = explode("/", $file);
+                $type = $type[0];
+                if ($type != $this->type) continue;
+            }
             $path = "{$this->config['uploadDir']}/$file";
             if (!$this->checkFilePath($path)) continue;
             $base = basename($file);
@@ -461,7 +475,7 @@ class browser extends uploader {
                 $error[] = $this->label("The file '{file}' does not exist.", $replace);
             elseif (substr($base, 0, 1) == ".")
                 $error[] = $this->htmlData($base) . ": " . $this->label("File name shouldn't begins with '.'");
-            elseif (!$this->validateExtension($ext, $type))
+            elseif (!$this->validateExtension($ext, $this->type))
                 $error[] = $this->htmlData($base) . ": " . $this->label("Denied file extension.");
             elseif (file_exists("$dir/$base"))
                 $error[] = $this->htmlData($base) . ": " . $this->label("A file or folder with that name already exists.");
@@ -499,9 +513,11 @@ class browser extends uploader {
         foreach($_POST['files'] as $file) {
             $file = path::normalize($file);
             if (substr($file, 0, 1) == ".") continue;
-            $type = explode("/", $file);
-            $type = $type[0];
-            if ($type != $this->type) continue;
+            if($this->doTypeSubdir){
+                $type = explode("/", $file);
+                $type = $type[0];
+                if ($type != $this->type) continue;
+            }
             $path = "{$this->config['uploadDir']}/$file";
             if (!$this->checkFilePath($path)) continue;
             $base = basename($file);
@@ -590,10 +606,12 @@ class browser extends uploader {
             $file = path::normalize($file);
             if ((substr($file, 0, 1) == "."))
                 continue;
-            $type = explode("/", $file);
-            $type = $type[0];
-            if ($type != $this->type)
-                continue;
+            if($this->doTypeSubdir){
+                $type = explode("/", $file);
+                $type = $type[0];
+                if ($type != $this->type)
+                    continue;
+            }
             $file = $this->config['uploadDir'] . "/$file";
             if (!is_file($file) || !is_readable($file) || !$this->checkFilePath($file))
                 continue;

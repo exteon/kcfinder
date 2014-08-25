@@ -42,7 +42,9 @@ _.setTreeData = function(data, path) {
         path = "";
     else if (path.length && (path.substr(path.length - 1, 1) != '/'))
         path += "/";
-    path += data.name;
+    if(!data.skip){
+    	path += data.name;
+    }
     var selector = '#folders a[href="kcdir:/' + $.$.escapeDirs(path) + '"]';
     $(selector).data({
         name: data.name,
@@ -63,8 +65,13 @@ _.setTreeData = function(data, path) {
 };
 
 _.buildTree = function(root, path) {
-    if (!path) path = "";
-    path += root.name;
+    if (!path)
+        path = "";
+    else if (path.length && (path.substr(path.length - 1, 1) != '/'))
+        path += "/";
+    if(!root.skip){
+    	path += root.name;
+    }
     var cdir, html = '<div class="folder"><a href="kcdir:/' + $.$.escapeDirs(path) + '"><span class="brace">&nbsp;</span><span class="folder">' + $.$.htmlData(root.name) + '</span></a>';
     if (root.dirs) {
         html += '<div class="folders">';

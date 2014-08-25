@@ -86,6 +86,12 @@ class uploader {
 /** CMS integration property (got from $_GET['cms'])
   * @var string */
     protected $cms = "";
+    
+/**
+ * Whether current type creates a subfolder to hold files
+ * @var bool
+ */
+    protected $doTypeSubdir=true;
 
 /** Magic method which allows read-only access to protected or private class properties
   * @param string $property
@@ -193,6 +199,7 @@ class uploader {
             foreach ($this->types[$this->type] as $key => $val)
                 if (in_array($key, $this->typeSettings))
                     $this->config[$key] = $val;
+            $this->doTypeSubdir=(!isset($this->types[$this->type]['doSubdir'])||$this->types[$this->type]['doSubdir']);
             $this->types[$this->type] = isset($this->types[$this->type]['type'])
                 ? $this->types[$this->type]['type'] : "";
         }
@@ -221,17 +228,11 @@ class uploader {
             $this->config['uploadDir'] = strlen($this->config['uploadDir'])
                 ? path::normalize($this->config['uploadDir'])
                 : path::url2fullPath("/$path");
-            $this->typeDir = "{$this->config['uploadDir']}/{$this->type}";
-            $this->typeURL = "{$this->config['uploadURL']}/{$this->type}";
-
         // SITE ROOT
         } elseif ($this->config['uploadURL'] == "/") {
             $this->config['uploadDir'] = strlen($this->config['uploadDir'])
                 ? path::normalize($this->config['uploadDir'])
                 : path::normalize($_SERVER['DOCUMENT_ROOT']);
-            $this->typeDir = "{$this->config['uploadDir']}/{$this->type}";
-            $this->typeURL = "/{$this->type}";
-
         // ABSOLUTE & RELATIVE
         } else {
             $this->config['uploadURL'] = (substr($this->config['uploadURL'], 0, 1) === "/")
@@ -240,8 +241,12 @@ class uploader {
             $this->config['uploadDir'] = strlen($this->config['uploadDir'])
                 ? path::normalize($this->config['uploadDir'])
                 : path::url2fullPath($this->config['uploadURL']);
-            $this->typeDir = "{$this->config['uploadDir']}/{$this->type}";
-            $this->typeURL = "{$this->config['uploadURL']}/{$this->type}";
+        }
+        $this->typeDir = $this->config['uploadDir'];
+        $this->typeURL = $this->config['uploadURL'];
+        if($this->doTypeSubdir){
+        	$this->typeDir.='/'.$this->type;
+        	$this->typeURL.='/'.$this->type;
         }
 
         // HOST APPLICATIONS INIT
@@ -304,7 +309,7 @@ class uploader {
             // CHECK & CREATE UPLOAD FOLDER
             if (!is_dir($this->typeDir)) {
                 if (!mkdir($this->typeDir, $this->config['dirPerms']))
-                    $this->backMsg("Cannot create {dir} folder.", array('dir' => $this->type));
+                    $this->backMsg("Cannot create {dir} folder.", array('dir' => $this->typeDir));
             } elseif (!is_readable($this->typeDir))
                 $this->backMsg("Cannot read upload folder.");
         }
@@ -503,7 +508,7 @@ class uploader {
         return true;
     }
 
-    protected function checkInputDir($dir, $inclType=true, $existing=true) {
+    protected function checkInputDir($dir, $existing=true) {
         $dir = path::normalize($dir);
         if (substr($dir, 0, 1) == "/")
             $dir = substr($dir, 1);
@@ -511,15 +516,14 @@ class uploader {
         if ((substr($dir, 0, 1) == ".") || (substr(basename($dir), 0, 1) == "."))
             return false;
 
-        if ($inclType) {
+        if ($this->doTypeSubdir) {
             $first = explode("/", $dir);
             $first = $first[0];
             if ($first != $this->type)
                 return false;
             $return = $this->removeTypeFromPath($dir);
         } else {
-            $return = $dir;
-            $dir = "{$this->type}/$dir";
+            $return=$dir;
         }
 
         if (!$existing)
