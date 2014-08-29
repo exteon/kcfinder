@@ -1,10 +1,17 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
+<?php 
+	if(array_key_exists('baseUrl',$this->config)){
+?>
+	<base href="<?php echo htmlspecialchars($this->config['baseUrl'])?>" />
+<?php 
+	}
+?>
 <title>KCFinder: /<?php echo $this->session['dir'] ?></title>
 <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
-<?php INCLUDE "tpl/tpl_css.php" ?>
-<?php INCLUDE "tpl/tpl_javascript.php" ?>
+<?php INCLUDE "tpl_css.php" ?>
+<?php INCLUDE "tpl_javascript.php" ?>
 </head>
 <body>
 <div id="resizer"></div>

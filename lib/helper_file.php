@@ -178,6 +178,10 @@ class file {
             $dir = path::normalize(dirname($filename));
         else {
             $fdir = dirname($filename);
+            //	http://php.net/manual/en/function.dirname.php
+            if($fdir=='.'){
+            	$fdir='';
+            }
             $dir = strlen($fdir)
                 ? path::normalize("$dir/$fdir")
                 : path::normalize($dir);

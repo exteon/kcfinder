@@ -69,7 +69,7 @@ _.showFiles = function(callBack, selected) {
                 if (file.thumb)
                     icon = _.getURL('thumb') + "&file=" + encodeURIComponent(file.name) + "&dir=" + encodeURIComponent(_.dir) + "&stamp=" + stamp;
                 else if (file.smallThumb) {
-                    icon = _.uploadURL + "/" + _.dir + "/" + encodeURIComponent(file.name);
+                    icon = _.dirUrl + "/" + encodeURIComponent(file.name);
                     icon = $.$.escapeDirs(icon).replace(/\'/g, "%27");
                 } else {
                     icon = file.bigIcon ? $.$.getFileExtension(file.name) : ".";
@@ -164,7 +164,7 @@ _.selectAll = function(e) {
 _.returnFile = function(file) {
 
     var button, win, fileURL = file.substr
-        ? file : _.uploadURL + "/" + _.dir + "/" + file.data('name');
+        ? file : _.dirCanonicalUrl + "/" + file.data('name');
     fileURL = $.$.escapeDirs(fileURL);
 
     if (_.opener.name == "ckeditor") {
@@ -226,7 +226,7 @@ _.returnFiles = function(files) {
     if (_.opener.callBackMultiple && files.length) {
         var rfiles = [];
         $.each(files, function(i, file) {
-            rfiles[i] = _.uploadURL + "/" + _.dir + "/" + $(file).data('name');
+            rfiles[i] = _.dirCanonicalUrl + "/" + $(file).data('name');
             rfiles[i] = $.$.escapeDirs(rfiles[i]);
         });
         _.opener.callBackMultiple(rfiles);

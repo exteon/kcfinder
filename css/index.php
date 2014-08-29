@@ -14,7 +14,7 @@
 
 namespace kcfinder;
 
-chdir("..");
+chdir(dirname(__FILE__).'/..');
 require "core/autoload.php";
 $min = new minifier("css");
-$min->minify("cache/base.css");
+$min->minify("cache/base.css",dirname(__FILE__));

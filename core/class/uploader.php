@@ -87,12 +87,19 @@ class uploader {
   * @var string */
     protected $cms = "";
     
-/**
- * Whether current type creates a subfolder to hold files
- * @var bool
- */
-    protected $doTypeSubdir=true;
-
+    
+    /**
+     * Array that holds the mount points for the current type
+     * @var \pathSpec[]
+     */
+    protected $mounts=array();
+    
+    /**
+     * Current type full spec
+     * @var mixed
+     */
+    protected $typeSpec=array();
+    
 /** Magic method which allows read-only access to protected or private class properties
   * @param string $property
   * @return mixed */
@@ -114,7 +121,7 @@ class uploader {
             $this->file = &$_FILES[key($_FILES)];
 
         // CONFIG & SESSION SETUP
-        $session = new session("conf/config.php");
+        $session = new session(dirname(__FILE__)."/../../conf/config.php");
         $this->config = $session->getConfig();
         $this->session = &$session->values;
 
@@ -147,10 +154,12 @@ class uploader {
 
         // LOAD TYPE DIRECTORY SPECIFIC CONFIGURATION IF EXISTS
         if (is_array($this->types[$this->type])) {
+            if(is_array($this->types[$this->type])){
+                $this->typeSpec=$this->types[$this->type];
+            }
             foreach ($this->types[$this->type] as $key => $val)
                 if (in_array($key, $this->typeSettings))
                     $this->config[$key] = $val;
-            $this->doTypeSubdir=(!isset($this->types[$this->type]['doSubdir'])||$this->types[$this->type]['doSubdir']);
             $this->types[$this->type] = isset($this->types[$this->type]['type'])
                 ? $this->types[$this->type]['type'] : "";
         }
@@ -170,34 +179,37 @@ class uploader {
         // UPLOAD FOLDER INIT
 
         // FULL URL
-        if (preg_match('/^([a-z]+)\:\/\/([^\/^\:]+)(\:(\d+))?\/(.+)\/?$/',
-                $this->config['uploadURL'], $patt)
-        ) {
-            list($unused, $protocol, $domain, $unused, $port, $path) = $patt;
-            $path = path::normalize($path);
-            $this->config['uploadURL'] = "$protocol://$domain" . (strlen($port) ? ":$port" : "") . "/$path";
-            $this->config['uploadDir'] = strlen($this->config['uploadDir'])
-                ? path::normalize($this->config['uploadDir'])
-                : path::url2fullPath("/$path");
-        // SITE ROOT
-        } elseif ($this->config['uploadURL'] == "/") {
-            $this->config['uploadDir'] = strlen($this->config['uploadDir'])
-                ? path::normalize($this->config['uploadDir'])
-                : path::normalize(realpath($_SERVER['DOCUMENT_ROOT']));
-        // ABSOLUTE & RELATIVE
+        if(array_key_exists('mount',$this->typeSpec)){
+            foreach($this->typeSpec['mount'] as $key=>$mount){
+                $this->mounts[]=new \pathSpec($mount['name'], "$key", $mount['uploadDir'], $mount['uploadURL'], array_key_exists('uploadURLCanonical',$mount)?$mount['uploadURLCanonical']:$mount['uploadURL']);
+            }
         } else {
-            $this->config['uploadURL'] = (substr($this->config['uploadURL'], 0, 1) === "/")
-                ? path::normalize($this->config['uploadURL'])
-                : path::rel2abs_url($this->config['uploadURL']);
-            $this->config['uploadDir'] = strlen($this->config['uploadDir'])
-                ? path::normalize($this->config['uploadDir'])
-                : path::url2fullPath($this->config['uploadURL']);
-        }
-        $this->typeDir = $this->config['uploadDir'];
-        $this->typeURL = $this->config['uploadURL'];
-        if($this->doTypeSubdir){
-        	$this->typeDir.='/'.$this->type;
-        	$this->typeURL.='/'.$this->type;
+            if (preg_match('/^([a-z]+)\:\/\/([^\/^\:]+)(\:(\d+))?\/(.+)\/?$/',
+                $this->config['uploadURL'], $patt)
+            ) {
+                list($unused, $protocol, $domain, $unused, $port, $path) = $patt;
+                $path = path::normalize($path);
+                $this->config['uploadURL'] = "$protocol://$domain" . (strlen($port) ? ":$port" : "") . "/$path";
+                $this->config['uploadDir'] = strlen($this->config['uploadDir'])
+                    ? path::normalize($this->config['uploadDir'])
+                    : path::url2fullPath("/$path");
+            // SITE ROOT
+            } elseif ($this->config['uploadURL'] == "/") {
+                $this->config['uploadDir'] = strlen($this->config['uploadDir'])
+                    ? path::normalize($this->config['uploadDir'])
+                    : path::normalize(realpath($_SERVER['DOCUMENT_ROOT']));
+            // ABSOLUTE & RELATIVE
+            } else {
+                $this->config['uploadURL'] = (substr($this->config['uploadURL'], 0, 1) === "/")
+                    ? path::normalize($this->config['uploadURL'])
+                    : path::rel2abs_url($this->config['uploadURL']);
+                $this->config['uploadDir'] = strlen($this->config['uploadDir'])
+                    ? path::normalize($this->config['uploadDir'])
+                    : path::url2fullPath($this->config['uploadURL']);
+            }
+        	$this->config['uploadDir'].='/'.$this->type;
+        	$this->config['uploadURL'].='/'.$this->type;
+        	$this->mounts=array(new \pathSpec($this->type,"$this->type",$this->config['uploadDir'],$this->config['uploadURL'], array_key_exists('uploadURLCanonical',$this->config)?$this->config['uploadURLCanonical']:$this->config['uploadURL']));
         }
 
         // HOST APPLICATIONS INIT
@@ -232,37 +244,46 @@ class uploader {
                 break;
             }
         $this->localize($this->lang);
-
+        
         // IF BROWSER IS ENABLED
         if (!$this->config['disabled']) {
-
             // TRY TO CREATE UPLOAD DIRECTORY IF NOT EXISTS
-            if (!$this->config['disabled'] && !is_dir($this->config['uploadDir']))
-                @mkdir($this->config['uploadDir'], $this->config['dirPerms']);
-
+            foreach($this->mounts as $key=>$mount){
+                if(
+                    !$mount->isDir() &&
+                    !$mount->prepareDir($this->config['dirPerms'])
+                ){
+                    unset($this->mounts[$key]);
+                }
+            }
+            
+            if(!$this->mounts){
+                $this->backMsg('All mounts are invalid.');
+            }
+            
             // CHECK & MAKE DEFAULT .htaccess
             if (isset($this->config['_check4htaccess']) &&
                 $this->config['_check4htaccess']
             ) {
-                $htaccess = "{$this->config['uploadDir']}/.htaccess";
                 $original = $this->get_htaccess();
-                if (!file_exists($htaccess)) {
-                    if (!@file_put_contents($htaccess, $original))
-                        $this->backMsg("Cannot write to upload folder. {$this->config['uploadDir']}");
-                } else {
-                    if (false === ($data = @file_get_contents($htaccess)))
-                        $this->backMsg("Cannot read .htaccess");
-                    if (($data != $original) && !@file_put_contents($htaccess, $original))
-                        $this->backMsg("Incorrect .htaccess file. Cannot rewrite it!");
+                foreach($this->mounts as $mount){
+                    $htaccess=$mount->descend('.htaccess');
+                    if(!$htaccess->exists()){
+                        if (!@file_put_contents($htaccess, $original)){
+                        	$this->backMsg("Cannot write $htaccess");
+                        }
+                    }
                 }
             }
-
-            // CHECK & CREATE UPLOAD FOLDER
-            if (!is_dir($this->typeDir)) {
-                if (!mkdir($this->typeDir, $this->config['dirPerms']))
-                    $this->backMsg("Cannot create {dir} folder.", array('dir' => $this->typeDir));
-            } elseif (!is_readable($this->typeDir))
-                $this->backMsg("Cannot read upload folder.");
+        }
+        
+        // MISC
+        if(
+        	array_key_exists('baseUrl',$this->config)
+        ){
+        	if(substr($this->config['baseUrl'],-1)!='/'){
+        		$this->config['baseUrl'].='/';
+        	}
         }
     }
 
@@ -270,67 +291,66 @@ class uploader {
         $config = &$this->config;
         $file = &$this->file;
         $url = $message = "";
-
-        if ($config['disabled'] || !$config['access']['files']['upload']) {
-            if (isset($file['tmp_name'])) @unlink($file['tmp_name']);
-            $message = $this->label("You don't have permissions to upload files.");
-
-        } elseif (true === ($message = $this->checkUploadedFile())) {
-            $message = "";
-
-            $dir = "{$this->typeDir}/";
-            if (isset($_GET['dir']) &&
-                (false !== ($gdir = $this->checkInputDir($_GET['dir'])))
-            ) {
-                $udir = path::normalize("$dir$gdir");
-                if (substr($udir, 0, strlen($dir)) !== $dir)
-                    $message = $this->label("Unknown error.");
-                else {
-                    $l = strlen($dir);
-                    $dir = "$udir/";
-                    $udir = substr($udir, $l);
-                }
+        
+        do {
+            if ($config['disabled'] || !$config['access']['files']['upload']) {
+                if (isset($file['tmp_name'])) @unlink($file['tmp_name']);
+                $message = $this->label("You don't have permissions to upload files.");
+                break;
             }
-
-            if (!strlen($message)) {
-                if (!is_dir(path::normalize($dir)))
-                    @mkdir(path::normalize($dir), $this->config['dirPerms'], true);
-
-                $filename = $this->normalizeFilename($file['name']);
-                $target = file::getInexistantFilename($dir . $filename);
-
-                if (!@move_uploaded_file($file['tmp_name'], $target) &&
-                    !@rename($file['tmp_name'], $target) &&
-                    !@copy($file['tmp_name'], $target)
-                )
-                    $message = $this->label("Cannot move uploaded file to target folder.");
-                else {
-                    if (function_exists('chmod'))
-                        @chmod($target, $this->config['filePerms']);
-                    $this->makeThumb($target);
-                    $url = $this->typeURL;
-                    if (isset($udir)) $url .= "/$udir";
-                    $url .= "/" . basename($target);
-                    if (preg_match('/^([a-z]+)\:\/\/([^\/^\:]+)(\:(\d+))?\/(.+)$/', $url, $patt)) {
-                        list($unused, $protocol, $domain, $unused, $port, $path) = $patt;
-                        $base = "$protocol://$domain" . (strlen($port) ? ":$port" : "") . "/";
-                        $url = $base . path::urlPathEncode($path);
-                    } else
-                        $url = path::urlPathEncode($url);
-                }
+            $check=$this->checkUploadedFile();
+            if($check!==true){
+                $message=$check;
+                break;
             }
-        }
+            $dir=$this->checkInputDir($_GET['dir']);
+            if(!$dir){
+                $message="Invalid [dir] parameter.";
+                break;
+            }
+            if (
+                !$dir->isDir() &&
+                !$dir->prepareDir($this->config['dirPerms'])
+            ){
+                $message="Cannot create dir.";
+                break;
+            }
+            $filename = $this->normalizeFilename($file['name']);
+            $filenameEff = file::getInexistantFilename($filename,$dir);
+            $target=$dir->descend($filenameEff);
+            if (!@move_uploaded_file($file['tmp_name'], $target) &&
+                !@rename($file['tmp_name'], $target) &&
+                !@copy($file['tmp_name'], $target)
+            ){
+                $message = $this->label("Cannot move uploaded file to target folder.");
+                break;
+            }
+            if (function_exists('chmod')){
+                @chmod($target, $this->config['filePerms']);
+            }
+            $this->makeThumb($target);
+            $url=$target->getUrl();
+            if (preg_match('/^([a-z]+)\:\/\/([^\/^\:]+)(\:(\d+))?\/(.+)$/', $url, $patt)) {
+                list($unused, $protocol, $domain, $unused, $port, $path) = $patt;
+                $base = "$protocol://$domain" . (strlen($port) ? ":$port" : "") . "/";
+                $url = $base . path::urlPathEncode($path);
+            } else {
+                $url = path::urlPathEncode($url);
+            }
+        } while(false);
 
         if (strlen($message) &&
             isset($this->file['tmp_name']) &&
             file_exists($this->file['tmp_name'])
-        )
+        ) {
             @unlink($this->file['tmp_name']);
+        }
 
-        if (strlen($message) && method_exists($this, 'errorMsg'))
+        if (strlen($message) && method_exists($this, 'errorMsg')) {
             $this->errorMsg($message);
-        else
+        } else {
             $this->callBack($url, $message);
+        }
     }
 
     protected function normalizeFilename($filename) {
@@ -357,13 +377,6 @@ class uploader {
             $dirname = file::normalizeFilename($dirname);
 
         return $dirname;
-    }
-
-    protected function checkFilePath($file) {
-        $rPath = realpath($file);
-        if (strtoupper(substr(PHP_OS, 0, 3)) == "WIN")
-            $rPath = str_replace("\\", "/", $rPath);
-        return (substr($rPath, 0, strlen($this->typeDir)) === $this->typeDir);
     }
 
     protected function checkFilename($file) {
@@ -461,27 +474,19 @@ class uploader {
 
     protected function checkInputDir($dir, $existing=true) {
         $dir = path::normalize($dir);
-        if (substr($dir, 0, 1) == "/")
-            $dir = substr($dir, 1);
-
-        if ((substr($dir, 0, 1) == ".") || (substr(basename($dir), 0, 1) == "."))
+        $dirSpec=$this->specFromNS($dir);
+        if(!$dirSpec){
             return false;
-
-        if ($this->doTypeSubdir) {
-            $first = explode("/", $dir);
-            $first = $first[0];
-            if ($first != $this->type)
-                return false;
-            $return = $this->removeTypeFromPath($dir);
-        } else {
-            $return=$dir;
+        }
+        if (
+            !$existing ||
+            $dirSpec->isDir() && 
+            $dirspec->isReadable()
+        ){
+            return $dirSpec;
         }
 
-        if (!$existing)
-            return $return;
-
-        $path = "{$this->config['uploadDir']}/$dir";
-        return (is_dir($path) && is_readable($path)) ? $return : false;
+        return false;
     }
 
     protected function validateExtension($ext, $type) {
@@ -614,22 +619,20 @@ class uploader {
     }
 
     protected function makeThumb($file, $overwrite=true) {
-        $img = image::factory($this->imageDriver, $file);
+        $img = image::factory($this->imageDriver, $file->getPath());
 
         // Drop files which are not images
         if ($img->initError)
             return true;
 
-        $fimg = new fastImage($file);
+        $fimg = new fastImage($file->getPath());
         $type = $fimg->getType();
         $fimg->close();
 
         if ($type === false)
             return true;
 
-        $thumb = substr($file, strlen($this->config['uploadDir']));
-        $thumb = $this->thumbsDir . "/" . $thumb;
-        $thumb = path::normalize($thumb);
+        $thumb = $this->thumbsDir . "/" . $file->getNS();
         $thumbDir = dirname($thumb);
         if (!is_dir($thumbDir) && !@mkdir($thumbDir, $this->config['dirPerms'], true))
             return false;
@@ -659,7 +662,7 @@ class uploader {
     }
 
     protected function localize($langCode) {
-        require "lang/{$langCode}.php";
+        require dirname(__FILE__)."/../../lang/{$langCode}.php";
         setlocale(LC_ALL, $lang['_locale']);
         $this->charset = $lang['_charset'];
         $this->dateTimeFull = $lang['_dateTimeFull'];
@@ -765,6 +768,22 @@ if (window.opener) window.close();
     }
 
     protected function get_htaccess() {
-        return file_get_contents("conf/upload.htaccess");
+        return file_get_contents(dirname(__FILE__)."/../../conf/upload.htaccess");
+    }
+    
+    protected function specFromNS($ns){
+        $ns=path::normalize($ns);
+        $frags=explode('/',$ns,2);
+        $key=$frags[0];
+        $path=$frags[1];
+        if($key===''){
+            return null;
+        }
+        foreach($this->mounts as $mount){
+            if($key===$mount->getKey()){
+                return $mount->descend($path);
+            }
+        }
+        return null;
     }
 }

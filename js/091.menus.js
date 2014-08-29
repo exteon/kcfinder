@@ -227,20 +227,22 @@ _.menuFile = function(file, e) {
 
         if (_.opener.callBack || _.opener.callBackMultiple) {
 
-            // SELECT FILE
+        	// SELECT FILE
             _.menu.addItem("kcact:pick", _.label("Select"), function() {
                 _.returnFile(file);
                 return false;
             });
 
-            // SELECT THUMBNAIL
-            if (data.thumb)
-                _.menu.addItem("kcact:pick_thumb", _.label("Select Thumbnail"), function() {
-                    _.returnFile(_.thumbsURL + "/" + _.dir + "/" + data.name);
-                    return false;
-                });
-
-            _.menu.addDivider();
+            if(!_.disableSelectThumb){
+	            // SELECT THUMBNAIL
+	            if (data.thumb)
+	                _.menu.addItem("kcact:pick_thumb", _.label("Select Thumbnail"), function() {
+	                    _.returnFile(_.thumbsURL + "/" + _.dir + "/" + data.name);
+	                    return false;
+	                });
+	
+	            _.menu.addDivider();
+            }
         }
 
         // VIEW IMAGE
@@ -420,8 +422,12 @@ _.menuDir = function(dir, e) {
                     dir.children('span.folder').text(dt.name);
                     dir.data('name', dt.name);
                     dir.data('path', $.$.dirname(data.path) + '/' + dt.name);
-                    if (currentDir)
+                    dir.data('url', $.$.dirname(data.url) + '/' + dt.name);
+                    if (currentDir){
                         _.dir = dir.data('path');
+                    	_.dirUrl = dir.data('url');
+                    	_.dirCanonicalUrl = dir.data('canonicalUrl');
+                    }
                     _.initDropUpload();
                 },
                 true

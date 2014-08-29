@@ -22,7 +22,7 @@ _.viewImage = function(data) {
     showImage = function(data) {
         _.lock = true;
 
-        var url = $.$.escapeDirs(_.uploadURL + "/" + _.dir + "/" + data.name) + "?ts=" + ts,
+        var url = $.$.escapeDirs(_.dirUrl + '/' + data.name) + "?ts=" + ts,
             img = new Image(),
             i = $(img),
 

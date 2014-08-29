@@ -14,7 +14,7 @@
 
 namespace kcfinder;
 
-chdir("..");
+chdir(dirname(__FILE__).'/..');
 require "core/autoload.php";
 $min = new minifier("js");
-$min->minify("cache/base.js");
+$min->minify("cache/base.js",dirname(__FILE__));

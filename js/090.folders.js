@@ -37,51 +37,53 @@ _.initFolders = function() {
 
 };
 
-_.setTreeData = function(data, path) {
+_.setTreeData = function(nodes, path, url, canonicalUrl) {
     if (!path)
         path = "";
     else if (path.length && (path.substr(path.length - 1, 1) != '/'))
         path += "/";
-    if(!data.skip){
-    	path += data.name;
-    }
-    var selector = '#folders a[href="kcdir:/' + $.$.escapeDirs(path) + '"]';
-    $(selector).data({
-        name: data.name,
-        path: path,
-        readable: data.readable,
-        writable: data.writable,
-        removable: data.removable,
-        hasDirs: data.hasDirs
-    });
-    $(selector + ' span.folder').addClass(data.current ? 'current' : 'regular');
-    if (data.dirs && data.dirs.length) {
-        $(selector + ' span.brace').addClass('opened');
-        $.each(data.dirs, function(i, cdir) {
-            _.setTreeData(cdir, path + "/");
+    for(var i = 0; i < nodes.length; i++){
+    	var node = nodes[i],
+    		nodePath = path + node.name, 
+        	selector = '#folders a[href="kcdir:/' + $.$.escapeDirs(nodePath) + '"]',
+        	nodeUrl = node.url ? node.url : url + '/' + node.name,
+        	nodeCanonicalUrl = node.canonicalUrl ? node.canonicalUrl : canonicalUrl + '/' + node.name;
+        $(selector).data({
+            name: node.name,
+            path: nodePath,
+            readable: node.readable,
+            writable: node.writable,
+            removable: node.removable,
+            hasDirs: node.hasDirs,
+            url: nodeUrl,
+            canonicalUrl: nodeCanonicalUrl
         });
-    } else if (data.hasDirs)
-        $(selector + ' span.brace').addClass('closed');
+        $(selector + ' span.folder').addClass(node.current ? 'current' : 'regular');
+        if(node.dirs && node.dirs.length){
+            $(selector + ' span.brace').addClass('opened');
+        	_.setTreeData(node.dirs, nodePath, nodeUrl, nodeCanonicalUrl);
+        } else if (node.hasDirs)
+            $(selector + ' span.brace').addClass('closed');
+    }
 };
 
-_.buildTree = function(root, path) {
+_.buildTree = function(nodes, path) {
     if (!path)
         path = "";
     else if (path.length && (path.substr(path.length - 1, 1) != '/'))
         path += "/";
-    if(!root.skip){
-    	path += root.name;
-    }
-    var cdir, html = '<div class="folder"><a href="kcdir:/' + $.$.escapeDirs(path) + '"><span class="brace">&nbsp;</span><span class="folder">' + $.$.htmlData(root.name) + '</span></a>';
-    if (root.dirs) {
-        html += '<div class="folders">';
-        for (var i = 0; i < root.dirs.length; i++) {
-            cdir = root.dirs[i];
-            html += _.buildTree(cdir, path + "/");
-        }
+    var html='';
+    for(var i = 0; i < nodes.length; i++){
+    	var node = nodes[i];
+    	var nodePath = path + node.name; 
+    	html += '<div class="folder"><a href="kcdir:/' + $.$.escapeDirs(path + node.name) + '"><span class="brace">&nbsp;</span><span class="folder">' + $.$.htmlData(node.displayName?node.displayName:node.name) + '</span></a>';
+    	if(node.dirs){
+            html += '<div class="folders">';
+    		html += _.buildTree(node.dirs, nodePath);
+            html += '</div>';
+    	}
         html += '</div>';
     }
-    html += '</div>';
     return html;
 };
 
@@ -127,9 +129,7 @@ _.expandDir = function(dir) {
                             $(folders).show(500, function() {
                                 _.fixScrollRadius();
                             });
-                            $.each(data.dirs, function(i, cdir) {
-                                _.setTreeData(cdir, path);
-                            });
+                            _.setTreeData(data.dirs, path, dir.data('url'), dir.data('canonicalUrl'));
                         }
                         if (data.dirs.length)
                             dir.children('.brace').removeClass('closed').addClass('opened');
@@ -168,6 +168,8 @@ _.changeDir = function(dir) {
                 _.files = data.files;
                 _.orderFiles();
                 _.dir = dir.data('path');
+                _.dirUrl = dir.data('url');
+                _.dirCanonicalUrl = dir.data('canonicalUrl');
                 _.dirWritable = data.dirWritable;
                 _.setTitle("KCFinder: /" + _.dir);
                 _.statusDir();

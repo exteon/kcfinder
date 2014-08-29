@@ -10,7 +10,7 @@
 <?php
     ENDIF;
 
-    IF (file_exists("themes/{$this->config['theme']}/js.php")):
+    IF (file_exists(dirname(__FILE__)."/../themes/{$this->config['theme']}/js.php")):
 ?>
 <script src="themes/<?php echo $this->config['theme'] ?>/js.php" type="text/javascript"></script>
 <?php
@@ -25,12 +25,15 @@ _.type = "<?php echo text::jsValue($this->type) ?>";
 _.theme = "<?php echo text::jsValue($this->config['theme']) ?>";
 _.access = <?php echo json_encode($this->config['access']) ?>;
 _.dir = "<?php echo text::jsValue($this->session['dir']) ?>";
-_.uploadURL = "<?php echo text::jsValue($this->config['uploadURL']) ?>";
-_.thumbsURL = _.uploadURL + "/<?php echo text::jsValue($this->config['thumbsDir']) ?>";
+_.dirUrl = "<?php echo text::jsValue($this->session['dirUrl']) ?>";
+_.dirCanonicalUrl = "<?php echo text::jsValue($this->session['dirCanonicalUrl']) ?>";
 _.opener = <?php echo json_encode($this->opener) ?>;
 _.cms = "<?php echo text::jsValue($this->cms) ?>";
 _.dropUploadMaxFilesize = <?php echo isset($this->config['_dropUploadMaxFilesize']) ? intVal($this->config['_dropUploadMaxFilesize']) : "10485760" ?>;
 _.langs = <?= json_encode($this->getLangs()) ?>;
+_.browseUrl = <?php echo json_encode($this->config['browseUrl']) ?>;
+_.disableSelectThumb = <?php echo json_encode($this->config['disableSelectThumb']) ?>;
+_.thumbsURL = "<?php echo text::jsValue($this->config['thumbsURL']) ?>"; 
 $.$.kuki.domain = "<?php echo text::jsValue($this->config['cookieDomain']) ?>";
 $.$.kuki.path = "<?php echo text::jsValue($this->config['cookiePath']) ?>";
 $.$.kuki.prefix = "<?php echo text::jsValue($this->config['cookiePrefix']) ?>";

@@ -40,7 +40,7 @@ if (isset($_GET['cms']) &&
 
 
 // REGISTER AUTOLOAD FUNCTION
-require "core/autoload.php";
+require "autoload.php";
 
 
 // json_encode() IMPLEMENTATION IF JSON EXTENSION IS MISSING

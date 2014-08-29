@@ -25,7 +25,7 @@ class minifier {
     );
 
     public function __construct($type=null) {
-        $this->config = require("conf/config.php");
+        $this->config = require(dirname(__FILE__)."/../../conf/config.minifier.php");
         $type = strtolower($type);
         if (isset($this->mime[$type]))
             $this->type = $type;
@@ -35,7 +35,7 @@ class minifier {
 
     public function minify($cacheFile=null, $dir=null) {
         if ($dir === null)
-            $dir = dirname($_SERVER['SCRIPT_FILENAME']);
+            $dir = realpath(dirname(__FILE__.'../../cache'));
 
         // MODIFICATION TIME FILES
         $mtFiles = array(
