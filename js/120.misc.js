@@ -80,7 +80,7 @@ _.humanSize = function(size) {
 _.getURL = function(act, lang) {
     if (!lang)
         lang = _.lang;
-    var url = _.browseUrl ? _.browseUrl : 'browse.php';
+    var url = _.browseURL ? _.browseURL : 'browse.php';
     if(url.indexOf('?') === -1){
     	url += '?';
     } else {

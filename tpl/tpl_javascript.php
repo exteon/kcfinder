@@ -31,7 +31,7 @@ _.opener = <?php echo json_encode($this->opener) ?>;
 _.cms = "<?php echo text::jsValue($this->cms) ?>";
 _.dropUploadMaxFilesize = <?php echo isset($this->config['_dropUploadMaxFilesize']) ? intVal($this->config['_dropUploadMaxFilesize']) : "10485760" ?>;
 _.langs = <?= json_encode($this->getLangs()) ?>;
-_.browseUrl = <?php echo json_encode($this->config['browseUrl']) ?>;
+_.browseURL = <?php echo json_encode($this->config['browseURL']) ?>;
 _.disableSelectThumb = <?php echo json_encode($this->config['disableSelectThumb']) ?>;
 _.thumbsURL = "<?php echo text::jsValue($this->config['thumbsURL']) ?>"; 
 $.$.kuki.domain = "<?php echo text::jsValue($this->config['cookieDomain']) ?>";

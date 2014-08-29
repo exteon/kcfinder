@@ -279,10 +279,10 @@ class uploader {
         
         // MISC
         if(
-        	array_key_exists('baseUrl',$this->config)
+        	array_key_exists('baseURL',$this->config)
         ){
-        	if(substr($this->config['baseUrl'],-1)!='/'){
-        		$this->config['baseUrl'].='/';
+        	if(substr($this->config['baseURL'],-1)!='/'){
+        		$this->config['baseURL'].='/';
         	}
         }
     }

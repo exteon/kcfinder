@@ -2,9 +2,9 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <?php 
-	if(array_key_exists('baseUrl',$this->config)){
+	if(array_key_exists('baseURL',$this->config)){
 ?>
-	<base href="<?php echo htmlspecialchars($this->config['baseUrl'])?>" />
+	<base href="<?php echo htmlspecialchars($this->config['baseURL'])?>" />
 <?php 
 	}
 ?>

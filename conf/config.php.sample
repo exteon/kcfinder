@@ -1,0 +1,206 @@
+<?php
+
+/** This file is part of KCFinder project
+  *
+  *      @desc Base configuration file
+  *   @package KCFinder
+  *   @version 3.12
+  *    @author Pavel Tzonkov <sunhater@sunhater.com>
+  * @copyright 2010-2014 KCFinder Project
+  *   @license http://opensource.org/licenses/GPL-3.0 GPLv3
+  *   @license http://opensource.org/licenses/LGPL-3.0 LGPLv3
+  *      @link http://kcfinder.sunhater.com
+  */
+
+/* IMPORTANT!!! Do not comment or remove uncommented settings in this file
+   even if you are using session configuration.
+   See http://kcfinder.sunhater.com/install for setting descriptions */
+
+return array (
+
+// GENERAL SETTINGS
+
+    //  By default KCFinder is disabled. If you just set this setting to false 
+    //  all public visitors can upload and manage files on your web site. It 
+    //  is recommended to override this setting with sesssion configuration so 
+    //  only authenticated users can use KCFinder.
+    'disabled' => false,
+        
+    //  The visual theme of KCFinder. Pick one from the themes directory.
+    //  'default' and 'dark' currently available
+    'theme' => "default",
+    
+//  DIRECTORY AND URL SETTINGS
+
+    //  Setting baseURL will add a <base href= tag to the browser window
+    //  with this value. Use to run the browser from a virtualized path.
+    //  Trailing slash not needed.
+    //  'baseURL' => '/browser/',
+    
+    //  If set, this option will be used instead of browse.php to generate
+    //  AJAX requests. Use this to wrap the browser through another script
+    //  or in case of fully virtualized paths
+    //  'browseURL' => '/browser'
+    
+    //  Directory that will be used as root for browser, when relative paths
+    //  are used for type dirs. The path must be rooted. Trailing slash not 
+    //  needed. 
+    'uploadDir' => '/var/www/html/kc',
+    
+    //  URL where the uploadDir can be accessed. Trailing slash not required.
+    'uploadURL' => '/kc',
+    
+    //  If you need the URLs returned to the opener have another format than
+    //  when displaying in the browser, fill in the option below. It will used
+    //  as a prefix instead of uploadUrl. Trailing slash not required. 
+    //  'uploadURLCanonical' => '',
+
+    //  Directory where thumbs will be placed. The path must be rooted and the
+    //  directory must be writable by the web user. Trailing slash not 
+    //  required.
+    'thumbsDir' => $_SERVER['DOCUMENT_ROOT'].'/Thumbs',
+    
+    //  URL where the thumbs directory can be accessed. Trailing slash not 
+    //  required.
+    'thumbsURL' => '/Thumbs',
+    
+    //  Temporary directory where .zip files will be generated for download. 
+    //  The path must be rooted and the directory must be writable by the web 
+    //  user. Trailing slash not required.
+    'tempDir' => '/tmp/KCFinder',
+
+
+    'types' => array(
+    // (F)CKEditor types
+        'files'   =>  "",
+        'flash'   =>  "swf",
+        'images'  =>  "*img",
+
+    // TinyMCE types
+        'file'    =>  "",
+        'media'   =>  "swf flv avi mpg mpeg qt mov wmv asf rm",
+        'image'   =>  "*img", 
+
+    //  Sample with multiple mount points below
+    
+    //  'multi'  => array(
+    //      'type'      => '',
+    //      'mount'     => array(
+    //          array(
+    //              'name'                  => 'Local',
+    //              'uploadDir'             => '/var/www/html/kc',
+    //              'uploadURL'             => '/kc',
+    //              'uploadURLCanonical'    => '/download/kc'
+    //          ),
+    //          array(
+    //              'name'                  => 'Remote CDN',
+    //              'uploadDir'             => '/mnt/cdn',
+    //              'uploadURL'             => 'http://cdn.host.com'
+    //          ),
+    //      )
+    //  )
+    ),
+
+
+// IMAGE SETTINGS
+
+    //  Space separated image drivers. Only first working one will be used for 
+    //  image manipulations.
+    'imageDriversPriority' => "imagick gmagick gd",
+    
+    //  JPEG compression quality of thumbnails and resized images.
+    'jpegQuality' => 90,
+
+    //  Maximum image width and height. If uploaded image resolution exceeds 
+    //  these settings it will be automatically resized. If both are set to 
+    //  zero, images will not be resized. If one of these settings is set to 
+    //  zero, the image will be proportionally resized to fit the other 
+    //  setting.
+    'maxImageWidth' => 0,
+    'maxImageHeight' => 0,
+
+    //  Resolution for the generated thumbnail images.
+    'thumbWidth' => 100,
+    'thumbHeight' => 100,
+
+    //  Places a watermark on the uploaded images.
+    'watermark' => "",
+
+// DISABLE / ENABLE SETTINGS
+
+    //  To disable downloading multiple files as a single ZIP archive, you 
+    //  should set this setting to true.
+    'denyZipDownload' => false,
+    
+    //  If you set this to true, online checking for new version in "About" box
+    //  will not appear.
+    'denyUpdateCheck' => false,
+    
+    //  This setting is used to forbid the changing of file's extensions.
+    'denyExtensionRename' => false,
+
+    //  Use this option to disable the "Select thumb" menu option.
+    'disableSelectThumb'=>false,
+
+// PERMISSION SETTINGS
+
+    //  Default filesystem permissions for new files and directories created 
+    //  with KCFinder. Windows servers will skip these settings.
+    'dirPerms' => 0755,
+    'filePerms' => 0644,
+
+    //  Defines user's write permissions for files and directories.
+    'access' => array(
+
+        'files' => array(
+            'upload' => true,
+            'delete' => true,
+            'copy'   => true,
+            'move'   => true,
+            'rename' => true
+        ),
+
+        'dirs' => array(
+            'create' => true,
+            'delete' => true,
+            'rename' => true
+        )
+    ),
+
+    //  Global denied file extensions list. Will be checked when the user 
+    //  uploads or renames a file.
+    'deniedExts' => "exe com msi bat cgi pl php phps phtml php3 php4 php5 php6 py pyc pyo pcgi pcgi3 pcgi4 pcgi5 pchi6",
+
+
+// MISC SETTINGS
+
+    //  This setting defines characters or strings that will be automatically 
+    //  replaced in file names during file upload or rename.
+    'filenameChangeChars' => array(/*
+        ' ' => "_",
+        ':' => "."
+    */),
+
+    //  Same as filenameChangeChars setting but related to directories creation
+    //  and renaming.
+    'dirnameChangeChars' => array(/*
+        ' ' => "_",
+        ':' => "."
+    */),
+
+    //  Full path to magic file. If you leave this setting empty the default 
+    //  magic file will be loaded.
+    'mime_magic' => "",
+
+    //  CKFinder cookie settings
+    'cookieDomain' => "",
+    'cookiePath' => "",
+    'cookiePrefix' => 'KCFINDER_',
+        
+// THE FOLLOWING SETTINGS CANNOT BE OVERRIDED WITH SESSION SETTINGS
+    '_sessionVar' => "KCFINDER",
+    '_check4htaccess' => true,
+    '_normalizeFilenames' => false,
+    '_dropUploadMaxFilesize' => 10485760,
+    //'_tinyMCEPath' => "/tiny_mce",
+);
