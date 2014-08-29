@@ -893,7 +893,7 @@ class browser extends uploader {
         if (isset($this->session['langs']))
             return $this->session['langs'];
 
-        $files = dir::content("lang", array(
+        $files = dir::content(dirname(__FILE__)."/../../lang", array(
             'pattern' => '/^[a-z]{2,3}(\-[a-z]{2})?\.php$/',
             'types' => "file"
         ));
