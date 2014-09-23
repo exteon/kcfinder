@@ -155,7 +155,7 @@ class browser extends uploader {
         $dir=$this->specFromNS($this->session['dir']);
         $data=array(
             'tree' => array(),
-            'dirWritable'=>false
+            'dirWritable'=>dir::isWritable($dir)
         );
         foreach($this->mounts as $mount){
             $tree=$this->getTree($mount,$dir);
